@@ -131,6 +131,10 @@ export const PassageTextPlain: React.FC<PassageTextProps> = props => {
 		(editor: CodeMirror.Editor) => {
 			onEditorChange(editor);
 			window.setTimeout(() => {
+				// Refresh before focus: the dialog entrance animation (200ms CSS
+				// transition on .dialog-transform-setter) leaves CodeMirror's
+				// coordinate map stale, causing click-to-cursor misalignment.
+				editor.refresh();
 				editor.focus();
 			}, 400);
 		},

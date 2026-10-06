@@ -32,10 +32,12 @@ export interface MenuSeparator {
 
 export interface MenuButtonProps extends Omit<IconButtonProps, 'onClick'> {
 	items: (LabeledMenuItem | MenuSeparator)[];
+	/** 2 = two-column grid inside the menu (used by Snowcone Player Action / Story Output). */
+	columns?: 1 | 2;
 }
 
 export const MenuButton: React.FC<MenuButtonProps> = props => {
-	const {items, ...other} = props;
+	const {items, columns = 1, ...other} = props;
 	const [buttonEl, setButtonEl] = React.useState<HTMLButtonElement | null>(
 		null
 	);
@@ -74,34 +76,72 @@ export const MenuButton: React.FC<MenuButtonProps> = props => {
 					{...attributes.popper}
 				>
 					<ButtonCard floating>
-						<ButtonBar orientation="vertical">
-							{items.map((item, index) => {
-								if (item.separator) {
-									return <ButtonBarSeparator key={index} />;
-								}
+						{columns === 2 ? (
+							<div className="menu-button-menu-grid">
+								{items.map((item, index) => {
+									if (item.separator) {
+										return (
+											<div
+												className="menu-button-menu-grid-separator"
+												key={index}
+											>
+												<ButtonBarSeparator />
+											</div>
+										);
+									}
 
-								return 'checkable' in item ? (
-									<CheckboxButton
-										checkedIcon={<IconCheck />}
-										disabled={item.disabled}
-										key={index}
-										label={item.label}
-										onChange={item.onClick}
-										uncheckedIcon={<IconEmpty />}
-										value={item.checked}
-									/>
-								) : (
-									<IconButton
-										disabled={item.disabled}
-										icon={<IconEmpty />}
-										key={index}
-										label={item.label}
-										onClick={item.onClick}
-										variant={item.variant}
-									/>
-								);
-							})}
-						</ButtonBar>
+									return 'checkable' in item ? (
+										<CheckboxButton
+											checkedIcon={<IconCheck />}
+											disabled={item.disabled}
+											key={index}
+											label={item.label}
+											onChange={item.onClick}
+											uncheckedIcon={<IconEmpty />}
+											value={item.checked}
+										/>
+									) : (
+										<IconButton
+											disabled={item.disabled}
+											icon={<IconEmpty />}
+											key={index}
+											label={item.label}
+											onClick={item.onClick}
+											variant={item.variant}
+										/>
+									);
+								})}
+							</div>
+						) : (
+							<ButtonBar orientation="vertical">
+								{items.map((item, index) => {
+									if (item.separator) {
+										return <ButtonBarSeparator key={index} />;
+									}
+
+									return 'checkable' in item ? (
+										<CheckboxButton
+											checkedIcon={<IconCheck />}
+											disabled={item.disabled}
+											key={index}
+											label={item.label}
+											onChange={item.onClick}
+											uncheckedIcon={<IconEmpty />}
+											value={item.checked}
+										/>
+									) : (
+										<IconButton
+											disabled={item.disabled}
+											icon={<IconEmpty />}
+											key={index}
+											label={item.label}
+											onClick={item.onClick}
+											variant={item.variant}
+										/>
+									);
+								})}
+							</ButtonBar>
+						)}
 					</ButtonCard>
 				</div>
 			</CSSTransition>

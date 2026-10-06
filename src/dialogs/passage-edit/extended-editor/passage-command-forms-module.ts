@@ -9,18 +9,28 @@ export type PassageCommandFormsModule = typeof import('@twine-fork/dialog-forms'
 /** @deprecated Use `PassageCommandFormsModule`. */
 export type DialogFormsWindowModule = PassageCommandFormsModule;
 
+function isPassageCommandFormsModule(
+	value: unknown
+): value is PassageCommandFormsModule {
+	if (value === null || typeof value !== 'object') {
+		return false;
+	}
+	return (
+		typeof (value as {DialogFormFactory?: unknown}).DialogFormFactory !== 'undefined'
+	);
+}
+
 function fromWindow(): PassageCommandFormsModule | undefined {
 	if (typeof window === 'undefined') {
 		return undefined;
 	}
-	const w = window as Window &
-		Record<string, PassageCommandFormsModule | undefined>;
-	const m =
+	const w = window as unknown as Record<string, unknown>;
+	const candidate =
 		w[WINDOW_PASSAGE_COMMAND_FORMS_MODULE] ??
 		w[WINDOW_LEGACY_TWINE_DIALOG_FORMS] ??
 		w[WINDOW_LEGACY_INFICT_DIALOG_FORMS];
-	if (m && typeof (m as {DialogFormFactory?: unknown}).DialogFormFactory !== 'undefined') {
-		return m;
+	if (isPassageCommandFormsModule(candidate)) {
+		return candidate;
 	}
 	return undefined;
 }

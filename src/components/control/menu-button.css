@@ -8,3 +8,34 @@
 .menu-button-menu {
 	z-index: 2000;
 }
+
+.menu-button-menu-grid {
+	align-items: stretch;
+	background: var(--light-gray);
+	display: grid;
+	gap: 1px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.menu-button-menu-grid .menu-button-menu-grid-separator {
+	background: var(--white);
+	display: flex;
+	align-items: center;
+	grid-column: 1 / -1;
+	padding: 3px 0;
+}
+
+/* Separators are normally sized for horizontal toolbars (tall × 1px). Full-width
+   section rules in the grid need the vertical-bar variant without extra row height. */
+.menu-button-menu-grid .menu-button-menu-grid-separator .button-bar-separator {
+	display: block;
+	flex: 1;
+	height: 1px;
+	margin: 0;
+	width: auto;
+}
+
+.menu-button-menu-grid .icon-button {
+	justify-content: flex-start;
+	width: 100%;
+}
