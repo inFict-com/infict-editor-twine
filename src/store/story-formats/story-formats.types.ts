@@ -39,11 +39,13 @@ export type StoryFormatToolbarItem =
 	| StoryFormatToolbarButton
 	| {
 			type: 'menu';
-			disabled: boolean;
+			disabled?: boolean;
 			icon: string;
 			iconOnly?: boolean;
 			items: StoryFormatToolbarMenuItem[];
 			label: string;
+			/** When 2, the dropdown uses a two-column grid (Story format toolbars only). */
+			menuColumns?: 1 | 2;
 	  };
 
 export interface StoryFormatToolbarFactoryEnvironment {

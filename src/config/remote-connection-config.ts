@@ -69,19 +69,48 @@ export function getRemoteStoryResourceUrl(
 	return t.replace(/\{apiBase\}/g, base).replace(/\{storyId\}/g, remoteStoryId);
 }
 
+/**
+ * Parse embed-related params from `location.hash`.
+ * Twine uses `HashRouter`: routes look like `#/stories/...` or `#/?embed=...`.
+ * The HTTP client never sends the fragment — safe for JWTs — but the hash must not
+ * use a bare `#authToken=...` (that becomes pathname `/authToken=...` and breaks routes).
+ */
+export function getHashSearchParams(): URLSearchParams {
+	if (typeof window === 'undefined') {
+		return new URLSearchParams();
+	}
+	const raw = window.location.hash.replace(/^#/, '');
+	if (!raw) {
+		return new URLSearchParams();
+	}
+	// HashRouter: "#/path" or "#/path?k=v" — read only the ?query part.
+	if (raw.startsWith('/')) {
+		const q = raw.indexOf('?');
+		if (q === -1) {
+			return new URLSearchParams();
+		}
+		return new URLSearchParams(raw.slice(q + 1));
+	}
+	// Legacy mistaken format "#authToken=…" (no leading "/"); still parse for compat.
+	return new URLSearchParams(raw);
+}
+
 export function readRemoteConnectionFromSearchParams(
 	params: URLSearchParams,
-	keys: RemoteConnectionQueryKeys
+	keys: RemoteConnectionQueryKeys,
+	options?: {hashParams?: URLSearchParams}
 ): {
 	apiEndpoint: string | null;
 	storyId: string | null;
 	authToken: string | null;
 	replaceExisting: boolean;
 } {
+	const hash = options?.hashParams;
+	const authFromHash = hash?.get(keys.authToken) ?? null;
 	return {
 		apiEndpoint: params.get(keys.apiBase),
 		storyId: params.get(keys.storyId),
-		authToken: params.get(keys.authToken),
+		authToken: params.get(keys.authToken) || authFromHash,
 		replaceExisting: params.get(keys.replaceExisting) === 'true'
 	};
 }
