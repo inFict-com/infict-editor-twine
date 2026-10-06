@@ -10,6 +10,7 @@ import { normalizeTag } from '../../../util/tag';
 import {syncTwineEmbedApiGlobals} from '../../../util/embed-window-bridge';
 import {isForkExtendedBuild} from '../../../config/fork-build-config';
 import {
+	getHashSearchParams,
 	getRemoteQueryKeys,
 	getRemoteStoryResourceUrl,
 	readRemoteConnectionFromSearchParams,
@@ -62,9 +63,11 @@ export const ApiInitializer: React.FC = ({ children }) => {
     try {
       const queryKeys = getRemoteQueryKeys();
       const params = new URLSearchParams(window.location.search);
+      const hashParams = getHashSearchParams();
       const {apiEndpoint, authToken, storyId} = readRemoteConnectionFromSearchParams(
         params,
-        queryKeys
+        queryKeys,
+        {hashParams}
       );
       // const debug = params.get('debug') === 'true'; // Unused since API provider is disabled
 
@@ -73,7 +76,16 @@ export const ApiInitializer: React.FC = ({ children }) => {
         // Check if we've already imported this story in this session
         const importedKey = `twine-api-imported-${storyId}`;
         if (sessionStorage.getItem(importedKey)) {
-          console.log('[API] Story already imported in this session, skipping');
+          console.log('[API] Story already imported in this session, skipping re-fetch');
+          // Still sync window globals — dialog forms (StoryContextClient) need
+          // apiEndpoint + apiAuthToken on every load; early return previously left them
+          // undefined after reload/navigation, causing /api/stories/... 401 on Vite origin.
+          syncTwineEmbedApiGlobals({
+            apiEndpoint,
+            currentStoryId: storyId,
+            ...(authToken ? {apiAuthToken: authToken} : {})
+          });
+          console.log('[Twine embed] Re-synced apiEndpoint for embed session:', apiEndpoint);
           setInitialized(true);
           return;
         }

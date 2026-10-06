@@ -6,6 +6,30 @@ import {
 	UpdateStoryAction
 } from '../stories.types';
 import {storyFileName} from '../../../electron/shared';
+import {
+	BUNDLED_EXTENDED_FORMAT,
+	isForkExtendedBuild
+} from '../../../config/fork-build-config';
+
+/** Remap legacy Snowcone patch versions to the single format shipped in this build. */
+function normalizeBundledExtendedStoryFormat<T extends {storyFormat?: string; storyFormatVersion?: string}>(
+	story: T
+): T {
+	if (
+		!isForkExtendedBuild() ||
+		story.storyFormat !== BUNDLED_EXTENDED_FORMAT.name ||
+		typeof story.storyFormatVersion !== 'string'
+	) {
+		return story;
+	}
+	if (story.storyFormatVersion === BUNDLED_EXTENDED_FORMAT.version) {
+		return story;
+	}
+	return {
+		...story,
+		storyFormatVersion: BUNDLED_EXTENDED_FORMAT.version
+	};
+}
 
 /**
  * Imports stories, overwriting any stories with the same name.
@@ -30,9 +54,15 @@ export function importStories(
 
 	return dispatch => {
 		toImport.forEach(importStory => {
+			const normalizedStory = normalizeBundledExtendedStoryFormat(importStory);
+			if (normalizedStory !== importStory) {
+				console.info(
+					`[importStories] Normalized ${importStory.storyFormat} ${importStory.storyFormatVersion} → ${normalizedStory.storyFormatVersion} (bundled)`
+				);
+			}
 			// Remove the temp ID that was assigned to the new story.
 
-			const props: Partial<Story> = {...importStory};
+			const props: Partial<Story> = {...normalizedStory};
 
 			delete props.id;
 

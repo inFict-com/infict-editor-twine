@@ -7,6 +7,7 @@ import {useStoriesContext} from '../../../store/stories';
 import {publishStory} from '../../../util/publish';
 import {getAppInfo} from '../../../util/app-info';
 import {
+	getHashSearchParams,
 	getRemoteQueryKeys,
 	getRemoteStoryResourceUrl,
 	readRemoteConnectionFromSearchParams,
@@ -202,7 +203,9 @@ export const RemotePublishButton: React.FC<PublishButtonProps> = ({
     // Check URL parameters as a backup method
     const urlParams = new URLSearchParams(window.location.search);
     const qk = getRemoteQueryKeys();
-    const remoteFromUrl = readRemoteConnectionFromSearchParams(urlParams, qk);
+    const remoteFromUrl = readRemoteConnectionFromSearchParams(urlParams, qk, {
+      hashParams: getHashSearchParams()
+    });
     if (remoteFromUrl.apiEndpoint && remoteFromUrl.storyId) {
       console.log('[RemotePublishButton] Remote API parameters found in URL');
       setVisible(true);
@@ -246,7 +249,9 @@ export const RemotePublishButton: React.FC<PublishButtonProps> = ({
   const doPublishRequest = async (tokenOverride?: string) => {
     const params = new URLSearchParams(window.location.search);
 		const qk = getRemoteQueryKeys();
-		const fromUrl = readRemoteConnectionFromSearchParams(params, qk);
+		const fromUrl = readRemoteConnectionFromSearchParams(params, qk, {
+			hashParams: getHashSearchParams()
+		});
 		const storedConfig = getRemoteConfigSnapshot();
 		const apiEndpoint = fromUrl.apiEndpoint || storedConfig?.apiEndpoint;
 		const authToken =
