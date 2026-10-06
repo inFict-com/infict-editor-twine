@@ -14,7 +14,7 @@ The **inFict Editor (Twine)** is an authoring tool for creators building interac
 
 ## Relationship to Twine
 
-This project is a fork of the open-source Twine editor by Chris Klimas and contributors. Twine remains the reference for general IF authoring; this fork layers inFict-specific defaults and tooling for platform authors.
+This project is a fork of the open-source Twine editor by Chris Klimas and other contributors. Twine remains the reference for general IF authoring; this fork layers inFict-specific defaults and tooling for platform authors.
 
 **Note:** This build is optimized for the [inFict](https://infict.com) ecosystem. Default story formats and some UI paths differ from stock Twine; stories and workflows are still Twine-compatible at the data level, but you should validate against your target environment.
 
