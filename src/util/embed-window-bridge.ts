@@ -6,6 +6,13 @@
  * Legacy `__infict*` keys are still written for one-release compatibility (Controller / Snowcone format.js).
  */
 
+/**
+ * CodeMirror.Editor: back-link to TwineCodeMirrorAdapter for Snowcone
+ * `dialogFormAdapterForEditor` (toolbar receives raw editor).
+ * Keep in sync with `CM_PASSAGE_DIALOG_ADAPTER_KEY` in Snowcone `dialog-form-adapter-bridge.js`.
+ */
+export const CM_PASSAGE_DIALOG_ADAPTER_KEY = '__infictDialogFormAdapter' as const;
+
 declare global {
 	interface Window {
 		__twineEmbed?: {

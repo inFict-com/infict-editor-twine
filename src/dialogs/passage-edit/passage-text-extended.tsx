@@ -16,9 +16,21 @@ import {
 	STORYFORMAT_CONTENT_CHANGED_EVENT,
 	STORYFORMAT_TEXT_CLICKED_EVENT
 } from './extended-editor/storyformat-bridge';
-import {setPassageCommandFormAdapter} from '../../util/embed-window-bridge';
+import {
+	CM_PASSAGE_DIALOG_ADAPTER_KEY,
+	setPassageCommandFormAdapter
+} from '../../util/embed-window-bridge';
+import {
+	getHashSearchParams,
+	getRemoteQueryKeys
+} from '../../config/remote-connection-config';
 import type {PassageTextProps} from './passage-text-types';
 import './passage-text.css';
+
+function embedAuthTokenFromUrl(urlParams: URLSearchParams): string | null {
+	const {authToken: key} = getRemoteQueryKeys();
+	return urlParams.get(key) || getHashSearchParams().get(key);
+}
 
 /** True when the editor string looks like compact chip placeholders, not embedded JSON. */
 function passageLooksLikeChipPlaceholders(text: string): boolean {
@@ -105,14 +117,23 @@ export const PassageTextExtended: React.FC<PassageTextProps> = props => {
 					console.log('[Twine StoryContextClient] getStoryConfig called with storyId:', storyId);
 
 					const urlParams = new URLSearchParams(window.location.search);
-					const apiEndpoint = urlParams.get('apiEndpoint') || (window as any).apiEndpoint;
+					const win = window as any;
+					const apiEndpoint =
+						urlParams.get('apiEndpoint') ||
+						win.apiEndpoint ||
+						win.__twineEmbed?.apiEndpoint ||
+						win.__infictTwine?.apiEndpoint;
 
-					const controllerStoryId = (window as any).currentStoryId || storyId;
+					const controllerStoryId = win.currentStoryId || win.__twineEmbed?.currentStoryId || storyId;
 					console.log('[Twine StoryContextClient] Using storyId:', controllerStoryId, 'apiEndpoint:', apiEndpoint);
 
 					if (apiEndpoint && controllerStoryId) {
 						try {
-							const authToken = urlParams.get('authToken') || (window as any).apiAuthToken;
+							const authToken =
+								embedAuthTokenFromUrl(urlParams) ||
+								win.apiAuthToken ||
+								win.__twineEmbed?.apiAuthToken ||
+								win.__infictTwine?.apiAuthToken;
 
 							if (!authToken) {
 								console.warn('[Twine StoryContextClient] No auth token available - skipping API config fetch');
@@ -192,29 +213,73 @@ export const PassageTextExtended: React.FC<PassageTextProps> = props => {
 
 	// Update adapter context whenever story or passage changes (toolbar commands merge this in DialogFormFactory)
 	React.useEffect(() => {
-		console.log('[PassageText] useEffect to update adapter context:', {
-			hasAdapter: !!passageCommandFormAdapterRef.current,
-			hasStory: !!story,
-			hasPassage: !!passage,
-			storyId: story?.id,
-			storyName: story?.name,
-			passagesLength: story?.passages?.length,
-			firstFewPassages: story?.passages?.slice(0, 3).map(p => p.name)
-		});
-		if (passageCommandFormAdapterRef.current && story && passage) {
-			const controllerStoryId = (window as any).currentStoryId || story.id;
+		let cancelled = false;
+
+		const run = async () => {
+			console.log('[PassageText] useEffect to update adapter context:', {
+				hasAdapter: !!passageCommandFormAdapterRef.current,
+				hasStory: !!story,
+				hasPassage: !!passage,
+				storyId: story?.id,
+				storyName: story?.name,
+				passagesLength: story?.passages?.length,
+				firstFewPassages: story?.passages?.slice(0, 3).map(p => p.name)
+			});
+			if (!passageCommandFormAdapterRef.current || !story || !passage) return;
+
+			const urlParams = new URLSearchParams(window.location.search);
+			const win = window as any;
+			const authToken =
+				embedAuthTokenFromUrl(urlParams) ||
+				win.apiAuthToken ||
+				win.__twineEmbed?.apiAuthToken ||
+				win.__infictTwine?.apiAuthToken;
+			const apiEndpoint =
+				urlParams.get('apiEndpoint') ||
+				win.apiEndpoint ||
+				win.__twineEmbed?.apiEndpoint ||
+				win.__infictTwine?.apiEndpoint;
+			const apiBase = (apiEndpoint || '').replace(/\/api\/twine$/, '');
+			let isAdmin = false;
+			if (authToken && apiBase) {
+				try {
+					const res = await fetch(`${apiBase}/api/auth/me`, {
+						headers: {Authorization: `Bearer ${authToken}`},
+						mode: 'cors'
+					});
+					if (res.ok) {
+						const me = await res.json();
+						isAdmin = Boolean(me?.isAdmin);
+					}
+				} catch (e) {
+					console.warn('[PassageText] /api/auth/me failed, admin UI disabled:', e);
+				}
+			}
+
+			if (cancelled) return;
+
+			const controllerStoryId = win.currentStoryId || story.id;
 			const contextToSet = {
 				storyId: controllerStoryId,
 				storyName: story.name,
 				passageId: passage.id,
 				passageName: passage.name,
 				storyContextClient: twineStoryContextClient,
-				passages: story.passages ? story.passages.map(p => p.name) : []
+				passages: story.passages ? story.passages.map(p => p.name) : [],
+				isAdmin
 			};
 			console.log('[PassageText] Setting adapter._dialogFormContext:', contextToSet);
 			(passageCommandFormAdapterRef.current as any)._dialogFormContext = contextToSet;
-			console.log('[PassageText] Adapter context set, verifying:', (passageCommandFormAdapterRef.current as any)._dialogFormContext);
-		}
+			console.log(
+				'[PassageText] Adapter context set, verifying:',
+				(passageCommandFormAdapterRef.current as any)._dialogFormContext
+			);
+		};
+
+		void run();
+		return () => {
+			cancelled = true;
+		};
 	}, [story, passage, twineStoryContextClient]);
 
 	// Load view mode from localStorage on mount
@@ -755,7 +820,14 @@ export const PassageTextExtended: React.FC<PassageTextProps> = props => {
 				setPassageCommandFormAdapter(adapter);
 				setPassageCommandFormsReady(true);
 			}
-			
+
+			const adaptor = passageCommandFormAdapterRef.current;
+			if (adaptor) {
+				(editor as CodeMirror.Editor & Record<string, unknown>)[
+					CM_PASSAGE_DIALOG_ADAPTER_KEY
+				] = adaptor;
+			}
+
 			// Initialize raw content
 			const initialValue = editor.getValue();
 			setRawContent(initialValue);
@@ -835,10 +907,14 @@ export const PassageTextExtended: React.FC<PassageTextProps> = props => {
 			// animation seems to mess up CodeMirror's cursor rendering. The delay below
 			// is intended to run after the animation completes.
 
-			window.setTimeout(() => {
-				editor.focus();
-				// Don't call editor.refresh() as it causes cursor jumps
-			}, 400);
+		window.setTimeout(() => {
+			// Refresh must precede focus: the dialog entrance animation (200ms CSS
+			// transition on .dialog-transform-setter) and chip widget insertion both
+			// alter layout after CodeMirror first renders, leaving its internal
+			// coordinate map stale.  Without refresh() clicks land on the wrong line.
+			editor.refresh();
+			editor.focus();
+		}, 400);
 		},
 		[onEditorChange, handleLocalChangeText, viewMode, handleChipClick]
 	);
@@ -1189,6 +1265,12 @@ export const PassageTextExtended: React.FC<PassageTextProps> = props => {
 
 	React.useEffect(() => {
 		return () => {
+			const ed = actualEditorRef.current;
+			if (ed) {
+				delete (ed as CodeMirror.Editor & Record<string, unknown>)[
+					CM_PASSAGE_DIALOG_ADAPTER_KEY
+				];
+			}
 			setPassageCommandFormAdapter(null);
 		};
 	}, []);

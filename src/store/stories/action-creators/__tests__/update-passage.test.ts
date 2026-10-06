@@ -193,6 +193,15 @@ describe('updatePassage action creator', () => {
 			]);
 		});
 
+		it('calls deleteOrphanedPassages when text is cleared to empty string', () => {
+			const oldText = story.passages[0].text;
+
+			updatePassage(story, story.passages[0], {text: ''})(dispatch, getState);
+			expect(deleteOrphanedPassagesMock.mock.calls).toEqual([
+				[story, story.passages[0], '', oldText]
+			]);
+		});
+
 		it("doesn't call deleteOrphanedPassages if text isn't being changed", () => {
 			updatePassage(story, story.passages[0], {name: 'new name'})(
 				dispatch,

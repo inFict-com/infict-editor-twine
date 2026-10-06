@@ -150,7 +150,9 @@ export default defineConfig(({mode}) => {
 				? ['locales/**', 'pwa/**']
 				: ['locales/**', 'pwa/**', 'story-formats/**'],
 			workbox: {
-				globPatterns: ['**/*.{js,css,html,svg,woff,woff2}']
+				globPatterns: ['**/*.{js,css,html,svg,woff,woff2}'],
+				clientsClaim: true,
+				skipWaiting: true
 			}
 		}),
 		{

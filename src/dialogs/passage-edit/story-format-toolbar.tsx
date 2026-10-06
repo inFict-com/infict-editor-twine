@@ -113,6 +113,7 @@ export const StoryFormatToolbar: React.FC<StoryFormatToolbarProps> = props => {
 						case 'menu': {
 							return (
 								<MenuButton
+									columns={item.menuColumns ?? 1}
 									disabled={disabled || item.disabled}
 									icon={<img src={item.icon} alt="" />}
 									iconOnly={item.iconOnly}

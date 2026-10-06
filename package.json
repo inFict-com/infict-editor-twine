@@ -6,7 +6,7 @@
 	"license": "GPL-3.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/infict/infict-editor-twine"
+		"url": "https://github.com/inFict-com/infict-editor-twine"
 	},
 	"engines": {
 		"node": ">=20",

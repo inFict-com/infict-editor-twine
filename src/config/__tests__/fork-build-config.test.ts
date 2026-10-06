@@ -38,7 +38,7 @@ describe('default story format constants', () => {
 	it('exports expected bundled extended and upstream ids', () => {
 		expect(BUNDLED_EXTENDED_FORMAT).toEqual({
 			name: 'Snowcone',
-			version: '1.0.26'
+			version: '1.0.28'
 		});
 		expect(UPSTREAM_DEFAULT_STORY_FORMAT).toEqual({
 			name: 'Harlowe',

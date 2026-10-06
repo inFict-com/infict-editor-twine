@@ -11,6 +11,7 @@ import type {Story} from './stories';
 import {useStoryFormatsContext} from './story-formats';
 import {useStoriesRepair} from './use-stories-repair';
 import {
+	getHashSearchParams,
 	getRemoteQueryKeys,
 	readRemoteConnectionFromSearchParams,
 	REMOTE_SESSION_STORAGE_KEY
@@ -115,8 +116,9 @@ export const StateLoader: React.FC = ({children}) => {
 
 			const params = new URLSearchParams(window.location.search);
 			const queryKeys = getRemoteQueryKeys();
+			const hashParams = getHashSearchParams();
 			const {apiEndpoint, storyId, authToken, replaceExisting} =
-				readRemoteConnectionFromSearchParams(params, queryKeys);
+				readRemoteConnectionFromSearchParams(params, queryKeys, {hashParams});
 			(window as any).__twineRemoteExport = undefined;
 			(window as any).__twineRemoteConfig = undefined;
 			try {
@@ -208,12 +210,31 @@ export const StateLoader: React.FC = ({children}) => {
 							params.delete('forceRefresh');
 							params.delete('directEdit');
 
+							const fullHash = window.location.hash.replace(/^#/, '');
+							let nextHashSuffix = '';
+							if (fullHash.startsWith('/')) {
+								const q = fullHash.indexOf('?');
+								const pathPart = q === -1 ? fullHash : fullHash.slice(0, q);
+								const hp =
+									q === -1
+										? new URLSearchParams()
+										: new URLSearchParams(fullHash.slice(q + 1));
+								hp.delete(queryKeys.authToken);
+								const qs = hp.toString();
+								nextHashSuffix = qs ? `${pathPart}?${qs}` : pathPart;
+							} else {
+								const hp = new URLSearchParams(fullHash);
+								hp.delete(queryKeys.authToken);
+								nextHashSuffix = hp.toString();
+							}
+							const nextHash = nextHashSuffix ? `#${nextHashSuffix}` : '';
+
 							const newQuery = params.toString();
 							const nextUrl =
 								window.location.origin +
 								window.location.pathname +
 								(newQuery ? `?${newQuery}` : '') +
-								window.location.hash;
+								nextHash;
 							window.history.replaceState({}, '', nextUrl);
 						}
 					}

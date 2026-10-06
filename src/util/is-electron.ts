@@ -5,7 +5,10 @@
  * @see https://github.com/electron/electron/issues/2288#issuecomment-337858978
  */
 export const isElectronRenderer = () =>
-	window.navigator.userAgent.indexOf('Electron') !== -1;
+	window.navigator.userAgent.indexOf('Electron') !== -1 &&
+	// Some embedded browsers include "Electron" in user agent without exposing the bridge.
+	typeof (window as Window & {twineElectron?: unknown}).twineElectron !==
+		'undefined';
 
 /**
  * Is this code currently running in an Electron main process? Returns false if

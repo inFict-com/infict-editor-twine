@@ -46,8 +46,9 @@ export function updatePassage(
 
 		// Side effects from changes.
 
-		if (!options.dontUpdateOthers && props.text) {
-			dispatch(deleteOrphanedPassages(story, passage, props.text, oldText));
+		if (!options.dontUpdateOthers && 'text' in props) {
+			const newText = props.text ?? '';
+			dispatch(deleteOrphanedPassages(story, passage, newText, oldText));
 
 			// We need to get an up-to-date version of the story so placement of new
 			// passages is correct.
@@ -55,7 +56,7 @@ export function updatePassage(
 			const updatedStory = storyWithId(getState(), story.id);
 
 			dispatch(
-				createNewlyLinkedPassages(updatedStory, passage, props.text, oldText)
+				createNewlyLinkedPassages(updatedStory, passage, newText, oldText)
 			);
 		}
 
